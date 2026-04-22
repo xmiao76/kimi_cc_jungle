@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: jungle-game
+Version: 1.0.0
+Summary: Jungle / Dou Shou Qi board game with AI
+Requires-Python: >=3.10
+Requires-Dist: PyQt6>=6.6
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-qt>=4.0; extra == "dev"
+Requires-Dist: pyinstaller>=6.0; extra == "dev"

@@ -1,0 +1,4 @@
+/build
+/jungle/ui/__pycache__
+*.exe
+/tests/__pycache__

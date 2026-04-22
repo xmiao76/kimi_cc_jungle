@@ -1,0 +1,6 @@
+PyQt6>=6.6
+
+[dev]
+pytest>=7.0
+pytest-qt>=4.0
+pyinstaller>=6.0
