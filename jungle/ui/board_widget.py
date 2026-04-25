@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal
+from PyQt6.QtCore import Qt, QRectF, QPointF, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor, QPainter, QBrush, QPen, QFont
 from PyQt6.QtWidgets import QWidget, QSizePolicy
 
@@ -28,6 +28,9 @@ class BoardWidget(QWidget):
         self._selected_square: tuple[int, int] | None = None
         self._legal_dests: set[tuple[int, int]] = set()
         self._flipped = False
+        self._last_move: tuple[int, int, int, int] | None = None
+        self._capture_flash: tuple[int, int] | None = None
+        self._flash_timer: QTimer | None = None
         self.setMinimumSize(350, 450)
         self.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -38,6 +41,10 @@ class BoardWidget(QWidget):
         self._game_state = state
         self._selected_square = None
         self._legal_dests = set()
+        self._last_move = None
+        self._capture_flash = None
+        if self._flash_timer is not None:
+            self._flash_timer.stop()
         self.update()
 
     def set_selected(self, row: int | None, col: int | None):
@@ -54,6 +61,24 @@ class BoardWidget(QWidget):
 
     def set_flipped(self, flipped: bool):
         self._flipped = flipped
+        self.update()
+
+    def set_last_move(self, fr: int, fc: int, tr: int, tc: int):
+        self._last_move = (fr, fc, tr, tc)
+        self.update()
+
+    def set_capture_flash(self, row: int, col: int):
+        self._capture_flash = (row, col)
+        self.update()
+        if self._flash_timer is not None:
+            self._flash_timer.stop()
+        self._flash_timer = QTimer(self)
+        self._flash_timer.setSingleShot(True)
+        self._flash_timer.timeout.connect(self._clear_flash)
+        self._flash_timer.start(400)
+
+    def _clear_flash(self):
+        self._capture_flash = None
         self.update()
 
     def _to_draw_coords(self, row: int, col: int) -> tuple[int, int]:
@@ -100,6 +125,37 @@ class BoardWidget(QWidget):
                     color = DEN_COLOR_RED
                 painter.fillRect(rect, QBrush(color))
 
+        # Draw terrain icons
+        for r in range(ROWS):
+            for c in range(COLS):
+                dr, dc = self._to_draw_coords(r, c)
+                rect = self._square_rect(dr, dc, cell_w, cell_h)
+                terrain = get_terrain(r, c)
+                cx = rect.x() + rect.width() / 2
+                cy = rect.y() + rect.height() / 2
+                if terrain is Terrain.RIVER:
+                    pen = QPen(QColor(70, 110, 200), 2)
+                    painter.setPen(pen)
+                    for offset in [-cell_h * 0.12, 0, cell_h * 0.12]:
+                        y = cy + offset
+                        painter.drawLine(int(cx - cell_w * 0.25), int(y), int(cx + cell_w * 0.25), int(y))
+                elif terrain in (Terrain.BLUE_TRAP, Terrain.RED_TRAP):
+                    pen = QPen(QColor(100, 100, 100), 2)
+                    painter.setPen(pen)
+                    margin = min(cell_w, cell_h) * 0.2
+                    painter.drawLine(int(rect.x() + margin), int(rect.y() + margin),
+                                     int(rect.x() + rect.width() - margin), int(rect.y() + rect.height() - margin))
+                    painter.drawLine(int(rect.x() + rect.width() - margin), int(rect.y() + margin),
+                                     int(rect.x() + margin), int(rect.y() + rect.height() - margin))
+                elif terrain in (Terrain.BLUE_DEN, Terrain.RED_DEN):
+                    pen = QPen(QColor(255, 255, 255, 180), 2)
+                    painter.setPen(pen)
+                    w_icon = min(cell_w, cell_h) * 0.3
+                    h_peak = min(cell_w, cell_h) * 0.2
+                    painter.drawLine(int(cx - w_icon), int(cy + h_peak * 0.5), int(cx - w_icon * 0.33), int(cy - h_peak))
+                    painter.drawLine(int(cx - w_icon * 0.33), int(cy - h_peak), int(cx + w_icon * 0.33), int(cy - h_peak))
+                    painter.drawLine(int(cx + w_icon * 0.33), int(cy - h_peak), int(cx + w_icon), int(cy + h_peak * 0.5))
+
         # Draw grid lines
         pen = QPen(GRID_COLOR)
         pen.setWidth(2)
@@ -131,6 +187,24 @@ class BoardWidget(QWidget):
                     rect = self._square_rect(dr, dc, cell_w, cell_h)
                     is_selected = (self._selected_square == (r, c))
                     PieceRenderer.render(painter, piece, rect, is_selected)
+
+        # Draw last move highlight
+        if self._last_move:
+            fr, fc, tr, tc = self._last_move
+            for r, c in ((fr, fc), (tr, tc)):
+                dr, dc = self._to_draw_coords(r, c)
+                rect = self._square_rect(dr, dc, cell_w, cell_h)
+                pen = QPen(QColor(255, 215, 0, 180), 3)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.setPen(pen)
+                painter.drawRect(rect.adjusted(2, 2, -2, -2))
+
+        # Draw capture flash
+        if self._capture_flash:
+            r, c = self._capture_flash
+            dr, dc = self._to_draw_coords(r, c)
+            rect = self._square_rect(dr, dc, cell_w, cell_h)
+            painter.fillRect(rect, QBrush(QColor(255, 100, 0, 120)))
 
         # Draw coordinates (optional, small text)
         coord_font = QFont("Arial", max(8, int(min(cell_w, cell_h) * 0.15)))

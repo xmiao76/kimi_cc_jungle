@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
         self.controller.turn_changed.connect(self._on_turn_changed)
         self.controller.game_over.connect(self._on_game_over)
         self.controller.message.connect(self._on_message)
+        self.controller.capture_made.connect(self._on_capture_made)
 
         self._build_ui()
         self.controller.new_game()
@@ -135,6 +136,13 @@ class MainWindow(QMainWindow):
 
     def _on_message(self, msg: str):
         self.status_label.setText(msg)
+
+    def _on_capture_made(self, msg: str):
+        self.status_label.setText(msg)
+        if self.controller.state.move_history:
+            (fr, fc), (tr, tc) = self.controller.state.move_history[-1]
+            self.board_widget.set_last_move(fr, fc, tr, tc)
+            self.board_widget.set_capture_flash(tr, tc)
 
     def _on_flip_toggled(self, checked: bool):
         self.board_widget.set_flipped(checked)

@@ -53,9 +53,17 @@ class PieceRenderer:
         # Main circle
         painter.setBrush(QBrush(bg_color))
         outline = QPen(SELECTED_OUTLINE if selected else OUTLINE_COLOR)
-        outline.setWidth(3 if selected else 2)
+        outline.setWidth(4 if selected else 2)
         painter.setPen(outline)
         painter.drawEllipse(circle_rect)
+
+        # Subtle highlight ring for 3D effect
+        highlight_margin = rect.width() * 0.12
+        highlight_rect = rect.adjusted(highlight_margin, highlight_margin, -highlight_margin, -highlight_margin)
+        highlight_color = QColor(255, 255, 255, 70) if piece.side is Side.BLUE else QColor(255, 220, 220, 70)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(highlight_color, 1))
+        painter.drawEllipse(highlight_rect)
 
         # Inner gradient ring
         inner_margin = rect.width() * 0.18
@@ -64,12 +72,29 @@ class PieceRenderer:
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(inner_rect)
 
+        # Inner top-left highlight arc
+        arc_margin = rect.width() * 0.22
+        arc_rect = rect.adjusted(arc_margin, arc_margin, -arc_margin, -arc_margin)
+        arc_color = QColor(255, 255, 255, 110) if piece.side is Side.BLUE else QColor(255, 230, 230, 110)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(arc_color, 2))
+        painter.drawArc(arc_rect, 30 * 16, 120 * 16)
+
         # Draw animal emoji
         font = QFont("Segoe UI Emoji", int(rect.width() * 0.35))
         painter.setFont(font)
         painter.setPen(QPen(TEXT_COLOR))
         symbol = ANIMAL_SYMBOLS.get(piece.piece_type, "?")
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, symbol)
+
+        # Draw rank number at bottom left
+        rank_font = QFont("Arial", int(rect.width() * 0.22))
+        rank_font.setBold(True)
+        painter.setFont(rank_font)
+        painter.setPen(QPen(TEXT_COLOR))
+        painter.drawText(circle_rect.adjusted(4, 0, 0, -4).toRect(),
+                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+                         str(piece.rank))
 
         # Draw short English abbreviation at bottom right
         label_font = QFont("Arial", int(rect.width() * 0.18))

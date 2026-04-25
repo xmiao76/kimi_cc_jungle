@@ -74,10 +74,9 @@ class TestRiverRules:
         assert (3, 2) in moves
 
     def test_rat_in_water_cannot_capture_land_elephant(self):
-        # Rat in water vs elephant on land - no special power in water
+        # Rat in water vs elephant on land — special power requires rat on land
         state = make_state_with({(3, 1): BLUE_RAT, (2, 1): RED_ELEPHANT})
         moves = state.legal_moves_for(3, 1)
-        # Rat rank 1 < Elephant rank 8, and special case requires rat on LAND
         assert (2, 1) not in moves
 
 class TestRiverLeaps:
@@ -168,12 +167,11 @@ class TestRankCapture:
         moves = state.legal_moves_for(2, 3)
         assert (2, 4) in moves
 
-    def test_elephant_can_capture_rat_on_land(self):
-        # Standard rule: elephant can capture rat by normal rank (8 >= 1)
-        # Variant (not used): elephant may not kill rat. We follow the standard.
+    def test_elephant_cannot_capture_rat_on_land(self):
+        # Elephant cannot capture rat (special rule exception to normal ranking)
         state = make_state_with({(2, 3): BLUE_ELEPHANT, (2, 4): RED_RAT})
         moves = state.legal_moves_for(2, 3)
-        assert (2, 4) in moves
+        assert (2, 4) not in moves
 
     def test_elephant_cannot_capture_rat_in_water(self):
         # "A rat in the water is invulnerable to capture by any piece on land"

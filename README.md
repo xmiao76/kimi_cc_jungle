@@ -24,7 +24,7 @@ Jungle is a two-player strategy board game played on a 7x9 grid. Each player con
 - **Traps**: A piece in an enemy trap has its rank reduced to zero and can be captured by any enemy piece.
 - **Rat vs Elephant**:
   - A Rat on land **can** kill an Elephant (special exception to normal ranking).
-  - An Elephant **can** capture a Rat by normal rank (8 ≥ 1).
+  - An Elephant **cannot** capture a Rat in any case (special exception).
   - A Rat in water **cannot** kill an Elephant on land.
   - An Elephant on land **cannot** capture a Rat in water.
 - **Rat in Water**: A Rat in water is immune to all land pieces. Only another Rat in water can capture it.
@@ -40,8 +40,8 @@ Jungle is a two-player strategy board game played on a 7x9 grid. Each player con
 ## Notes
 
 - Standard Dou Shou Qi rules are used.
-- Ambiguities resolved: Lion outranks Tiger; Elephant can capture Rat normally (standard rule); Rat can capture Elephant on land (special exception); only enemy traps reduce rank; Leopards and Dogs do not leap rivers.
-- Variant NOT used: Some versions forbid Elephant from killing Rat. We follow the standard Wikipedia rule where Elephant may defeat Rat by rank.
+- Ambiguities resolved: Lion outranks Tiger; Elephant cannot capture Rat (chosen variant); Rat can capture Elephant on land (special exception); only enemy traps reduce rank; Leopards and Dogs do not leap rivers.
+- Variant: Elephant cannot capture Rat — this is a chosen rule variant differing from some standard rulesets.
 - The AI uses minimax search with alpha-beta pruning.
 
 ## Credits
