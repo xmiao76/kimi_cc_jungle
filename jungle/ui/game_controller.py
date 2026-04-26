@@ -8,6 +8,7 @@ class GameController(QObject):
     turn_changed = pyqtSignal(Side)
     game_over = pyqtSignal(Side)  # winner
     message = pyqtSignal(str)
+    capture_made = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -90,9 +91,14 @@ class GameController(QObject):
 
     def _execute_move(self, fr: tuple[int, int], tr: tuple[int, int]):
         move = (fr, tr)
+        attacker = self._state.board[fr[0]][fr[1]]
+        target = self._state.board[tr[0]][tr[1]]
         self._state = self._state.apply_move(move)
         self.state_changed.emit()
         self.turn_changed.emit(self._state.turn)
+        if target is not None and attacker is not None:
+            msg = f"{attacker.side.name} {attacker.piece_type.name} captured {target.side.name} {target.piece_type.name}!"
+            self.capture_made.emit(msg)
         if self._state.is_game_over():
             winner = self._state.winner()
             if winner:

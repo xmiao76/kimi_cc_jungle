@@ -70,6 +70,10 @@ class Rules:
         if terrain is Terrain.RED_TRAP and defender.side is Side.BLUE:
             def_rank = 0
 
+        # Elephant cannot capture rat (special rule)
+        if attacker.piece_type is PieceType.ELEPHANT and defender.piece_type is PieceType.RAT:
+            return False
+
         # Rat on land can kill elephant
         if attacker.piece_type is PieceType.RAT and defender.piece_type is PieceType.ELEPHANT and not attacker_in_water:
             return True
