@@ -82,14 +82,14 @@ class MainWindow(QMainWindow):
 
         # AI speed control for AI-vs-AI
         self.speed_layout = QHBoxLayout()
-        self.speed_label = QLabel("AI Delay:")
+        self.speed_label = QLabel("AI Think Time:")
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self.speed_slider.setMinimum(0)
-        self.speed_slider.setMaximum(2000)
-        self.speed_slider.setValue(300)
-        self.speed_slider.setTickInterval(100)
+        self.speed_slider.setMinimum(200)
+        self.speed_slider.setMaximum(5000)
+        self.speed_slider.setValue(1000)
+        self.speed_slider.setTickInterval(200)
         self.speed_slider.valueChanged.connect(self._on_speed_changed)
-        self.speed_value = QLabel("300 ms")
+        self.speed_value = QLabel("1000 ms")
         self.speed_layout.addWidget(self.speed_label)
         self.speed_layout.addWidget(self.speed_slider)
         self.speed_layout.addWidget(self.speed_value)
@@ -167,5 +167,5 @@ class MainWindow(QMainWindow):
         self.controller.new_game()
 
     def _on_speed_changed(self, value: int):
-        self.controller.set_ai_delay(value)
+        self.controller.set_ai_think_time(value)
         self.speed_value.setText(f"{value} ms")

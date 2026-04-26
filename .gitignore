@@ -2,3 +2,7 @@
 /jungle/ui/__pycache__
 *.exe
 /tests/__pycache__
+/.claude
+/jungle/ai/__pycache__
+/jungle/ai/__pycache__
+/jungle/model/__pycache__

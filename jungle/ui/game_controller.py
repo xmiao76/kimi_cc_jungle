@@ -18,7 +18,8 @@ class GameController(QObject):
         self._ai_enabled: bool = True
         self._ai_vs_ai: bool = False
         self._ai_thinking: bool = False
-        self._ai_delay_ms: int = 300
+        self._ai_delay_ms: int = 100
+        self._ai_think_time_ms: int = 1000
 
     @property
     def state(self) -> GameState:
@@ -43,6 +44,9 @@ class GameController(QObject):
 
     def set_ai_delay(self, ms: int):
         self._ai_delay_ms = max(0, ms)
+
+    def set_ai_think_time(self, ms: int):
+        self._ai_think_time_ms = max(200, ms)
 
     def new_game(self):
         self._state = GameState()
@@ -118,10 +122,7 @@ class GameController(QObject):
 
     def _make_ai_move(self):
         from jungle.ai.ai_player import AIPlayer
-        if self._ai_vs_ai:
-            ai = AIPlayer(depth=3)
-        else:
-            ai = AIPlayer(depth=3)
+        ai = AIPlayer(time_limit_ms=self._ai_think_time_ms)
         move = ai.choose_move(self._state)
         self._ai_thinking = False
         if move:

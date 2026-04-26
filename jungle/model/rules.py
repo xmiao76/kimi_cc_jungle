@@ -134,11 +134,38 @@ class Rules:
 
     @staticmethod
     def apply_move(state: Any, move: Move) -> Any:
-        from copy import deepcopy
-        new_state = deepcopy(state)
+        # Use fast copy for GameState to avoid deepcopy overhead
+        if hasattr(state, 'fast_copy'):
+            new_state = state.fast_copy()
+        else:
+            from copy import deepcopy
+            new_state = deepcopy(state)
         (fr, fc), (tr, tc) = move
         piece = new_state.board[fr][fc]
         assert piece is not None
+
+        # Incrementally update Zobrist hash
+        from jungle.ai.transposition import ZOBRIST_KEYS, ZOBRIST_SIDE
+        old_hash = new_state._zobrist_hash
+        if old_hash is None:
+            old_hash = new_state._compute_zobrist_hash()
+
+        # XOR out piece from source square
+        old_hash ^= ZOBRIST_KEYS[(piece.piece_type, piece.side, fr, fc)]
+
+        # XOR out captured piece from target square (if any)
+        captured = new_state.board[tr][tc]
+        if captured is not None:
+            old_hash ^= ZOBRIST_KEYS[(captured.piece_type, captured.side, tr, tc)]
+
+        # XOR in piece at target square
+        old_hash ^= ZOBRIST_KEYS[(piece.piece_type, piece.side, tr, tc)]
+
+        # XOR side-to-move (turn flips)
+        old_hash ^= ZOBRIST_SIDE
+
+        new_state._zobrist_hash = old_hash
+
         new_state.board[tr][tc] = piece
         new_state.board[fr][fc] = None
         new_state.turn = piece.side.opposite()

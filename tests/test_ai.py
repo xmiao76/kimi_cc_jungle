@@ -36,7 +36,7 @@ class TestEvaluation:
 class TestSearch:
     def test_finds_move(self):
         state = GameState()
-        search = Search(depth=2)
+        search = Search(time_limit_ms=500)
         move = search.best_move(state)
         assert move is not None
         (fr, fc), (tr, tc) = move
@@ -46,7 +46,7 @@ class TestSearch:
     def test_ai_vs_random_wins(self):
         import random
         ai_side = Side.BLUE
-        ai = AIPlayer(depth=3)
+        ai = AIPlayer(time_limit_ms=1000)
         state = GameState()
         moves = 0
         while not state.is_game_over() and moves < 500:
@@ -68,6 +68,39 @@ class TestSearch:
         board[7][3] = BLUE_RAT
         board[0][0] = RED_LION
         state = GameState(board, Side.BLUE)
-        ai = AIPlayer(depth=1)
+        ai = AIPlayer(time_limit_ms=500)
         move = ai.choose_move(state)
         assert move == ((7, 3), (8, 3))
+
+    def test_tt_speedup(self):
+        state = GameState()
+        search = Search(time_limit_ms=200)
+        # First call clears TT internally, so test _negamax directly
+        search.start_time = __import__('time').time()
+        search._current_depth = 3
+        nodes_before = search.nodes
+        score1 = search._negamax(state, 2, -999999, 999999)
+        nodes_after_first = search.nodes - nodes_before
+        score2 = search._negamax(state, 2, -999999, 999999)
+        nodes_after_second = search.nodes - nodes_after_first
+        assert score1 == score2
+        # Second search should use fewer nodes due to TT hits
+        assert nodes_after_second < nodes_after_first
+
+    def test_search_respects_time_limit(self):
+        import time
+        state = GameState()
+        search = Search(time_limit_ms=200)
+        start = time.time()
+        move = search.best_move(state)
+        elapsed = (time.time() - start) * 1000
+        assert move is not None
+        # Allow 20% buffer plus overhead
+        assert elapsed < 300
+
+    def test_iterative_deepening_reaches_depth_two(self):
+        state = GameState()
+        search = Search(time_limit_ms=500)
+        search.best_move(state)
+        # With 500ms, the search should easily reach depth >= 2
+        assert search._current_depth >= 2
