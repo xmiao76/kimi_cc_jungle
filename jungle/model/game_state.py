@@ -9,13 +9,16 @@ from .board import ROWS, COLS, Terrain, get_terrain
 from .rules import Rules, Move
 
 class GameState:
-    def __init__(self, board: Optional[List[List[Optional[Piece]]]] = None, turn: Side = Side.BLUE):
+    def __init__(self, board: Optional[List[List[Optional[Piece]]]] = None, turn: Side = Side.BLUE,
+                 move_history: Optional[List[Move]] = None, winner: Optional[Side] = None,
+                 zobrist_hash: Optional[int] = None):
         if board is None:
             board = self._initial_board()
         self.board: List[List[Optional[Piece]]] = board
         self.turn: Side = turn
-        self.move_history: List[Move] = []
-        self._winner: Optional[Side] = None
+        self.move_history: List[Move] = list(move_history) if move_history is not None else []
+        self._winner: Optional[Side] = winner
+        self._zobrist_hash: Optional[int] = zobrist_hash
 
     @staticmethod
     def _initial_board() -> List[List[Optional[Piece]]]:
@@ -42,10 +45,37 @@ class GameState:
         return b
 
     def copy(self) -> 'GameState':
-        new = GameState(deepcopy(self.board), self.turn)
-        new.move_history = list(self.move_history)
-        new._winner = self._winner
+        new = GameState(deepcopy(self.board), self.turn,
+                        list(self.move_history), self._winner, self._zobrist_hash)
         return new
+
+    def fast_copy(self) -> 'GameState':
+        """Shallow-ish copy: board list is copied, but immutable pieces are shared."""
+        new_board = [row[:] for row in self.board]
+        return GameState(new_board, self.turn,
+                        list(self.move_history), self._winner, self._zobrist_hash)
+
+    def _compute_zobrist_hash(self) -> int:
+        from jungle.ai.transposition import ZOBRIST_KEYS, ZOBRIST_SIDE
+        h = 0
+        for r in range(ROWS):
+            for c in range(COLS):
+                piece = self.board[r][c]
+                if piece is not None:
+                    h ^= ZOBRIST_KEYS[(piece.piece_type, piece.side, r, c)]
+        if self.turn is Side.RED:
+            h ^= ZOBRIST_SIDE
+        return h
+
+    def __hash__(self) -> int:
+        if self._zobrist_hash is None:
+            self._zobrist_hash = self._compute_zobrist_hash()
+        return self._zobrist_hash
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, GameState):
+            return NotImplemented
+        return hash(self) == hash(other) and len(self.move_history) == len(other.move_history)
 
     def winner(self) -> Optional[Side]:
         if self._winner is None:

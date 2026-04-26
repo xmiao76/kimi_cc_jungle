@@ -35,7 +35,7 @@ Jungle is a two-player strategy board game played on a 7x9 grid. Each player con
 - **Flip Board**: Rotate the board 180 degrees for viewing (does not change game state).
 - **Play as Blue / Red**: Choose your side.
 - **vs AI / Hotseat (2P) / AI vs AI**: Choose game mode.
-- **AI Delay**: Adjust the pause between AI moves in AI-vs-AI mode.
+- **AI Think Time**: Adjust how long the AI thinks per move (200-5000 ms).
 
 ## Notes
 
