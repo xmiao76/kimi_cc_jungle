@@ -104,3 +104,59 @@ class TestSearch:
         search.best_move(state)
         # With 500ms, the search should easily reach depth >= 2
         assert search._current_depth >= 2
+
+    def test_beginner_eval_noise(self):
+        state = GameState()
+        scores = set()
+        for _ in range(10):
+            from jungle.ai.evaluation import evaluate
+            scores.add(evaluate(state, noise=10))
+        # With noise, not all evaluations are identical
+        assert len(scores) > 1
+
+    def test_beginner_disabled_tt(self):
+        state = GameState()
+        search_no_tt = Search(time_limit_ms=200, max_depth=3, use_tt=False)
+        search_tt = Search(time_limit_ms=200, max_depth=3, use_tt=True)
+        move_no_tt = search_no_tt.best_move(state)
+        move_tt = search_tt.best_move(state)
+        # Both should produce legal moves
+        assert move_no_tt is not None
+        assert move_tt is not None
+        # TT-enabled search should use the transposition table
+        assert search_tt.tt.stats()["stores"] > 0
+
+    def test_beginner_max_depth_capped(self):
+        state = GameState()
+        search = Search(time_limit_ms=200, max_depth=2)
+        search.best_move(state)
+        assert search._current_depth <= 2
+
+    def test_beginner_beats_random(self):
+        import random
+        from jungle.ai.ai_player import AIPlayer
+        ai_side = Side.BLUE
+        ai = AIPlayer(
+            time_limit_ms=200,
+            strength_config={
+                "max_depth": 3,
+                "quiescence_depth": 0,
+                "use_tt": False,
+                "use_killers": False,
+                "eval_noise": 10,
+            },
+        )
+        state = GameState()
+        moves = 0
+        while not state.is_game_over() and moves < 500:
+            if state.turn is ai_side:
+                move = ai.choose_move(state)
+            else:
+                legal = state.all_legal_moves()
+                move = random.choice(legal) if legal else None
+            if move is None:
+                break
+            state = state.apply_move(move)
+            moves += 1
+        assert state.is_game_over()
+        assert state.winner() is ai_side

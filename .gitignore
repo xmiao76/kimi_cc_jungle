@@ -6,3 +6,4 @@
 /jungle/ai/__pycache__
 /jungle/ai/__pycache__
 /jungle/model/__pycache__
+*.pyc
