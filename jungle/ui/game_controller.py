@@ -20,6 +20,7 @@ class GameController(QObject):
         self._ai_thinking: bool = False
         self._ai_delay_ms: int = 100
         self._ai_think_time_ms: int = 1000
+        self._ai_strength_config: dict | None = None
 
     @property
     def state(self) -> GameState:
@@ -48,6 +49,9 @@ class GameController(QObject):
     def set_ai_think_time(self, ms: int):
         self._ai_think_time_ms = max(200, ms)
 
+    def set_ai_strength(self, config: dict | None):
+        self._ai_strength_config = config
+
     def new_game(self):
         self._state = GameState()
         self._selected = None
@@ -58,7 +62,10 @@ class GameController(QObject):
             self.message.emit("AI vs AI mode. Watching...")
             self._check_ai_turn()
         elif self._ai_enabled:
-            self.message.emit(f"New game. You play as {self._human_side.name}. Blue moves first.")
+            if self._human_side is Side.RED:
+                self.message.emit("New game. You play as Red. AI (Blue) moves first.")
+            else:
+                self.message.emit("New game. You play as Blue. Blue moves first.")
         else:
             self.message.emit("New game. Hotseat mode. Blue moves first.")
         self._check_ai_turn()
@@ -122,7 +129,10 @@ class GameController(QObject):
 
     def _make_ai_move(self):
         from jungle.ai.ai_player import AIPlayer
-        ai = AIPlayer(time_limit_ms=self._ai_think_time_ms)
+        ai = AIPlayer(
+            time_limit_ms=self._ai_think_time_ms,
+            strength_config=self._ai_strength_config,
+        )
         move = ai.choose_move(self._state)
         self._ai_thinking = False
         if move:

@@ -1,3 +1,4 @@
+import random
 from jungle.model.board import ROWS, COLS, get_terrain, Terrain, is_river, in_bounds
 from jungle.model.pieces import Piece, PieceType, Side
 from jungle.model.game_state import GameState
@@ -133,7 +134,7 @@ PIECE_SQUARE_TABLES_RED = {
 ENDGAME_THRESHOLD = 200
 
 
-def evaluate(state: GameState) -> int:
+def evaluate(state: GameState, noise: int = 0) -> int:
     if state.is_game_over():
         winner = state.winner()
         if winner is state.turn:
@@ -237,5 +238,8 @@ def evaluate(state: GameState) -> int:
                         score += r * 3
                     else:
                         score -= (ROWS - 1 - r) * 3
+
+    if noise > 0:
+        score += random.randint(-noise, noise)
 
     return score if state.turn is Side.BLUE else -score

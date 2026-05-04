@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 
 from jungle.model.pieces import Side
+from jungle.ai.strength import AIStrength
 from .board_widget import BoardWidget
 from .game_controller import GameController
 
@@ -54,6 +55,13 @@ class MainWindow(QMainWindow):
         self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
         top_layout.addWidget(self.mode_combo)
 
+        self.side_combo = QComboBox()
+        self.side_combo.addItem("Play as Blue", Side.BLUE)
+        self.side_combo.addItem("Play as Red", Side.RED)
+        self.side_combo.currentIndexChanged.connect(self._on_side_changed)
+        self.side_combo.setVisible(True)
+        top_layout.addWidget(self.side_combo)
+
         top_layout.addStretch()
         layout.addLayout(top_layout)
 
@@ -79,6 +87,25 @@ class MainWindow(QMainWindow):
         )
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
+
+        # Difficulty control
+        self.difficulty_layout = QHBoxLayout()
+        self.difficulty_label = QLabel("Difficulty:")
+        self.difficulty_combo = QComboBox()
+        self.difficulty_combo.addItem("Beginner", "BEGINNER")
+        self.difficulty_combo.addItem("Intermediate", "INTERMEDIATE")
+        self.difficulty_combo.addItem("Advanced", "ADVANCED")
+        self.difficulty_combo.addItem("Expert", "EXPERT")
+        self.difficulty_combo.currentIndexChanged.connect(self._on_difficulty_changed)
+        self.difficulty_layout.addWidget(self.difficulty_label)
+        self.difficulty_layout.addWidget(self.difficulty_combo)
+        self.difficulty_layout.addStretch()
+        layout.addLayout(self.difficulty_layout)
+
+        # Set initial visibility for vs_ai mode (default)
+        self.side_combo.setVisible(True)
+        self.difficulty_combo.setVisible(True)
+        self.difficulty_label.setVisible(True)
 
         # AI speed control for AI-vs-AI
         self.speed_layout = QHBoxLayout()
@@ -147,18 +174,44 @@ class MainWindow(QMainWindow):
     def _on_flip_toggled(self, checked: bool):
         self.board_widget.set_flipped(checked)
 
+    def _on_side_changed(self, index: int):
+        side = self.side_combo.itemData(index)
+        if side is not None:
+            self.controller.set_human_side(side)
+            self.board_widget.set_flipped(side is Side.RED)
+            self.flip_btn.setChecked(side is Side.RED)
+            self.controller.new_game()
+
+    def _on_difficulty_changed(self, index: int):
+        name = self.difficulty_combo.itemData(index)
+        if name is not None:
+            config = AIStrength[name].copy()
+            self.controller.set_ai_strength(config)
+            self.controller.set_ai_think_time(config["time_limit_ms"])
+            self.speed_slider.setValue(config["time_limit_ms"])
+            self.speed_value.setText(f"{config['time_limit_ms']} ms")
+
     def _on_mode_changed(self, index: int):
         mode = self.mode_combo.itemData(index)
         if mode == "vs_ai":
             self.controller.set_ai_vs_ai(False)
             self.controller.set_ai_enabled(True)
+            self.side_combo.setVisible(True)
+            self.difficulty_combo.setVisible(True)
+            self.difficulty_label.setVisible(True)
             self.controller.new_game()
         elif mode == "hotseat":
             self.controller.set_ai_vs_ai(False)
             self.controller.set_ai_enabled(False)
+            self.side_combo.setVisible(False)
+            self.difficulty_combo.setVisible(False)
+            self.difficulty_label.setVisible(False)
             self.controller.new_game()
         elif mode == "ai_vs_ai":
             self.controller.set_ai_vs_ai(True)
+            self.side_combo.setVisible(False)
+            self.difficulty_combo.setVisible(True)
+            self.difficulty_label.setVisible(True)
             self.controller.new_game()
 
     def _start_ai_vs_ai(self):

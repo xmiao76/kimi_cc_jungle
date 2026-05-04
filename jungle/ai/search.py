@@ -10,8 +10,21 @@ from .transposition import TranspositionTable, EXACT, LOWERBOUND, UPPERBOUND
 
 
 class Search:
-    def __init__(self, time_limit_ms: int = 1000):
+    def __init__(
+        self,
+        time_limit_ms: int = 1000,
+        max_depth: int = 20,
+        quiescence_depth: int = 4,
+        use_tt: bool = True,
+        use_killers: bool = True,
+        eval_noise: int = 0,
+    ):
         self.time_limit_ms = time_limit_ms
+        self.max_depth = max_depth
+        self.quiescence_depth = quiescence_depth
+        self.use_tt = use_tt
+        self.use_killers = use_killers
+        self.eval_noise = eval_noise
         self.nodes = 0
         self.tt = TranspositionTable()
         self.killer_moves: dict[int, list] = {}
@@ -62,7 +75,7 @@ class Search:
                 self._current_best_move = best_moves_at_depth[0]
 
             depth += 1
-            if depth > 20:  # safety cap
+            if depth > self.max_depth:  # safety cap
                 break
 
         return self._current_best_move
@@ -79,9 +92,10 @@ class Search:
                 priority += 1000 + target.rank * 10 - (attacker.rank if attacker else 0)
             else:
                 # Killer move bonus
-                killers = self.killer_moves.get(ply, [])
-                if m in killers:
-                    priority += 500
+                if self.use_killers:
+                    killers = self.killer_moves.get(ply, [])
+                    if m in killers:
+                        priority += 500
 
                 # Forward move priority
                 if state.turn is Side.BLUE:
@@ -97,21 +111,23 @@ class Search:
         self.nodes += 1
 
         if self.time_exceeded():
-            return evaluate(state)
+            return evaluate(state, self.eval_noise)
 
         if state.is_game_over():
-            return evaluate(state)
+            return evaluate(state, self.eval_noise)
 
         # Transposition table lookup
         state_hash = hash(state)
-        tt_entry = self.tt.lookup(state_hash, depth)
-        if tt_entry is not None:
-            if tt_entry.flag == EXACT:
-                return tt_entry.score
-            elif tt_entry.flag == LOWERBOUND and tt_entry.score >= beta:
-                return tt_entry.score
-            elif tt_entry.flag == UPPERBOUND and tt_entry.score <= alpha:
-                return tt_entry.score
+        if self.use_tt:
+            tt_entry = self.tt.lookup(state_hash, depth)
+            if tt_entry is not None:
+                if tt_entry.flag == EXACT:
+                    return tt_entry.score
+                elif tt_entry.flag == LOWERBOUND and tt_entry.score >= beta:
+                    return tt_entry.score
+                elif tt_entry.flag == UPPERBOUND and tt_entry.score <= alpha:
+                    return tt_entry.score
+        tt_entry = None
 
         moves = state.all_legal_moves()
         if not moves:
@@ -134,14 +150,16 @@ class Search:
             score = -self._negamax(new_state, depth - 1, -beta, -alpha)
             if score >= beta:
                 # Beta cutoff — store killer move if not a capture
-                target = state.board[move[1][0]][move[1][1]]
-                if target is None:
-                    killers = self.killer_moves.setdefault(ply, [])
-                    if move not in killers:
-                        killers.insert(0, move)
-                        if len(killers) > 2:
-                            killers.pop()
-                self.tt.store(state_hash, depth, score, LOWERBOUND, move)
+                if self.use_killers:
+                    target = state.board[move[1][0]][move[1][1]]
+                    if target is None:
+                        killers = self.killer_moves.setdefault(ply, [])
+                        if move not in killers:
+                            killers.insert(0, move)
+                            if len(killers) > 2:
+                                killers.pop()
+                if self.use_tt:
+                    self.tt.store(state_hash, depth, score, LOWERBOUND, move)
                 return beta
             if score > alpha:
                 alpha = score
@@ -152,23 +170,24 @@ class Search:
             flag = UPPERBOUND
         elif alpha >= beta:
             flag = LOWERBOUND
-        self.tt.store(state_hash, depth, alpha, flag, best_move_at_node)
+        if self.use_tt:
+            self.tt.store(state_hash, depth, alpha, flag, best_move_at_node)
 
         return alpha
 
-    def _quiescence(self, state: GameState, alpha: int, beta: int, depth: int = 4) -> int:
+    def _quiescence(self, state: GameState, alpha: int, beta: int, qdepth: int = 0) -> int:
         self.nodes += 1
 
         if state.is_game_over():
-            return evaluate(state)
+            return evaluate(state, self.eval_noise)
 
-        stand_pat = evaluate(state)
+        stand_pat = evaluate(state, self.eval_noise)
         if stand_pat >= beta:
             return beta
         if stand_pat > alpha:
             alpha = stand_pat
 
-        if depth <= 0:
+        if qdepth >= self.quiescence_depth:
             return alpha
 
         tactical_moves = []
@@ -200,7 +219,7 @@ class Search:
 
         for move in tactical_moves:
             new_state = state.apply_move(move)
-            score = -self._quiescence(new_state, -beta, -alpha, depth - 1)
+            score = -self._quiescence(new_state, -beta, -alpha, qdepth + 1)
             if score >= beta:
                 return beta
             if score > alpha:
