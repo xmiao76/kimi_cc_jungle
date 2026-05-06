@@ -80,16 +80,17 @@ class TestRiverRules:
         assert (2, 1) not in moves
 
 class TestRiverLeaps:
-    def test_tiger_vertical_leap_down(self):
-        # Blue tiger at (2, 1) leaps down across river rows 3-5 to (6, 1)
-        state = make_state_with({(2, 1): BLUE_TIGER})
-        moves = state.legal_moves_for(2, 1)
-        assert (6, 1) in moves
+    def test_tiger_horizontal_leap_right(self):
+        # Blue tiger at (4, 0) leaps right across river cols 1,2 to (4, 3)
+        state = make_state_with({(4, 0): BLUE_TIGER})
+        moves = state.legal_moves_for(4, 0)
+        assert (4, 3) in moves
 
-    def test_tiger_vertical_leap_up(self):
-        state = make_state_with({(6, 1): RED_TIGER}, turn=Side.RED)
-        moves = state.legal_moves_for(6, 1)
-        assert (2, 1) in moves
+    def test_tiger_horizontal_leap_left(self):
+        # Red tiger at (4, 6) leaps left across river cols 5,4 to (4, 3)
+        state = make_state_with({(4, 6): RED_TIGER}, turn=Side.RED)
+        moves = state.legal_moves_for(4, 6)
+        assert (4, 3) in moves
 
     def test_lion_horizontal_leap_from_bridge(self):
         # Blue lion at (4, 3) leaps left across cols 2,1 (river) to col 0
@@ -103,17 +104,35 @@ class TestRiverLeaps:
         moves = state.legal_moves_for(4, 0)
         assert (4, 3) in moves
 
+    def test_lion_vertical_leap_down(self):
+        # Blue lion at (2, 1) leaps down across river rows 3-5 to (6, 1)
+        state = make_state_with({(2, 1): BLUE_LION})
+        moves = state.legal_moves_for(2, 1)
+        assert (6, 1) in moves
+
+    def test_lion_vertical_leap_up(self):
+        # Red lion at (6, 1) leaps up across river rows 5-3 to (2, 1)
+        state = make_state_with({(6, 1): RED_LION}, turn=Side.RED)
+        moves = state.legal_moves_for(6, 1)
+        assert (2, 1) in moves
+
     def test_leap_blocked_by_rat(self):
-        # Tiger leap from (2,1) to (6,1) blocked by rat at (4,1)
-        state = make_state_with({(2, 1): BLUE_TIGER, (4, 1): RED_RAT})
+        # Tiger leap from (4,0) to (4,3) blocked by rat at (4,1)
+        state = make_state_with({(4, 0): BLUE_TIGER, (4, 1): RED_RAT})
+        moves = state.legal_moves_for(4, 0)
+        assert (4, 3) not in moves
+
+    def test_lion_leap_blocked_by_rat(self):
+        # Lion vertical leap from (2,1) to (6,1) blocked by rat at (4,1)
+        state = make_state_with({(2, 1): BLUE_LION, (4, 1): RED_RAT})
         moves = state.legal_moves_for(2, 1)
         assert (6, 1) not in moves
 
-    def test_tiger_no_horizontal_leap(self):
-        state = make_state_with({(4, 0): BLUE_TIGER})
-        moves = state.legal_moves_for(4, 0)
-        # Tiger can only leap vertically
-        assert (4, 3) not in moves
+    def test_tiger_no_vertical_leap(self):
+        # Tiger can only leap horizontally (3 cols), not vertically (4 rows)
+        state = make_state_with({(2, 1): BLUE_TIGER})
+        moves = state.legal_moves_for(2, 1)
+        assert (6, 1) not in moves
 
     def test_leap_captures_on_landing(self):
         # Lion leaps and lands on enemy piece

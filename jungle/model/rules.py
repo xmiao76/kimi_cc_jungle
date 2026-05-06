@@ -84,11 +84,11 @@ class Rules:
     @staticmethod
     def _river_leaps(state: Any, row: int, col: int, piece: Piece) -> List[Tuple[int, int]]:
         leaps = []
-        # Tiger: vertically only
-        # Lion: vertically or horizontally
+        # Tiger: horizontally only (3 cols across river)
+        # Lion: both horizontally (3 cols) and vertically (4 rows)
         directions = []
         if piece.piece_type is PieceType.TIGER:
-            directions = [(-1, 0), (1, 0)]
+            directions = [(0, -1), (0, 1)]
         else:  # LION
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 

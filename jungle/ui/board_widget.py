@@ -206,16 +206,6 @@ class BoardWidget(QWidget):
             rect = self._square_rect(dr, dc, cell_w, cell_h)
             painter.fillRect(rect, QBrush(QColor(255, 100, 0, 120)))
 
-        # Draw coordinates (optional, small text)
-        coord_font = QFont("Arial", max(8, int(min(cell_w, cell_h) * 0.15)))
-        painter.setFont(coord_font)
-        painter.setPen(QPen(QColor(0, 0, 0, 100)))
-        for r in range(ROWS):
-            for c in range(COLS):
-                dr, dc = self._to_draw_coords(r, c)
-                rect = self._square_rect(dr, dc, cell_w, cell_h)
-                painter.drawText(rect.toRect(), Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft, f"{r},{c}")
-
         painter.end()
 
     def mousePressEvent(self, event):

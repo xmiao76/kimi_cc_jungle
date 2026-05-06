@@ -87,15 +87,6 @@ class PieceRenderer:
         symbol = ANIMAL_SYMBOLS.get(piece.piece_type, "?")
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, symbol)
 
-        # Draw rank number at bottom left
-        rank_font = QFont("Arial", int(rect.width() * 0.22))
-        rank_font.setBold(True)
-        painter.setFont(rank_font)
-        painter.setPen(QPen(TEXT_COLOR))
-        painter.drawText(circle_rect.adjusted(4, 0, 0, -4).toRect(),
-                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
-                         str(piece.rank))
-
         # Draw short English abbreviation at bottom right
         label_font = QFont("Arial", int(rect.width() * 0.18))
         label_font.setBold(True)
